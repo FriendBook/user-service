@@ -46,7 +46,7 @@ app.get('/usr/:id', (req, res) => {
 
 //Create a user
 app.post('/usr', (req, res) => {
-    if(!!req.body.name || !!req.body.bio)
+    if(!!req.body.name && !!req.body.bio)
     {
         var newUser = {
             name: req.body.name,
@@ -80,3 +80,16 @@ app.put('/usr/:id', (req, res) => {
         return
     }
 });
+
+//Delete user
+app.delete('/usr/:id', (req, res) => {
+    if(!!users[req.params.id]) {
+        delete users[req.params.id]
+        res.status(200).send(users)
+        return
+    }
+    else
+    {
+        throw 'User by id ' + id + ' does not exist.'
+    }
+})
