@@ -1,7 +1,6 @@
-
 const express = require('express');
 const app = express();
-const PORT = 4000;
+const PORT = 8080;
 
 app.use(express.json())
 
@@ -25,9 +24,7 @@ let users = {
 
 //Get all users
 app.get('/usr', (req, res) => {
-    res.status(200).send({
-        usrList
-    })
+    res.status(200).send({users})
 });
 
 //Get a user by id
