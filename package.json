@@ -1,7 +1,6 @@
 {
   "name": "service-temp",
   "version": "1.0.0",
-  "description": "",
   "main": "index.js",
   "scripts": {
     "start": "node index.js",
@@ -18,9 +17,21 @@
   "author": "",
   "license": "ISC",
   "dependencies": {
-    "express": "^4.17.3"
+    "amqplib": "^0.8.0",
+    "cors": "^2.8.5",
+    "express": "^4.17.3",
+    "nats": "^2.6.1"
   },
   "devDependencies": {
     "jest": "^27.5.1"
-  }
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/FriendBook/user-service.git"
+  },
+  "bugs": {
+    "url": "https://github.com/FriendBook/user-service/issues"
+  },
+  "homepage": "https://github.com/FriendBook/user-service#readme",
+  "description": ""
 }

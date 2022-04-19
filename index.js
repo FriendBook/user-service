@@ -1,10 +1,13 @@
 const express = require('express');
 const app = express();
 const PORT = 4000;
+const cors = require('cors');
+var amqp = require("amqplib/callback_api");
 
-app.use(express.json())
+app.use(express.json());
+app.use(cors());
 
-app.listen(PORT, () => console.log('It\'s alive on: http://localhost:' + PORT))
+app.listen(PORT, () => console.log('Listening on ' + PORT));
 
 //Fake Database
 let users = {
@@ -89,4 +92,25 @@ app.delete('/usr/:id', (req, res) => {
     {
         throw 'User by id ' + id + ' does not exist.'
     }
-})
+});
+
+amqp.connect("amqp://localhost", function (error0, connection) {
+  if (error0) {
+    throw error0;
+  }
+
+  connection.createChannel(function (error1, channel) {
+    if (error1) {
+      throw error1;
+    }
+    var queue = "hello";
+    var msg = JSON.stringify(users[1]);
+
+    channel.assertQueue(queue, {
+      durable: false,
+    });
+
+    channel.sendToQueue(queue, Buffer.from(msg));
+    console.log(" [x] Sent %s", msg);
+  });
+});
