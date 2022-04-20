@@ -94,23 +94,41 @@ app.delete('/usr/:id', (req, res) => {
     }
 });
 
-amqp.connect("amqp://localhost", function (error0, connection) {
-  if (error0) {
-    throw error0;
-  }
-
-  connection.createChannel(function (error1, channel) {
-    if (error1) {
-      throw error1;
+amqp.connect('amqp://localhost', function(error0, connection) {
+    if (error0) {
+        throw error0;
     }
-    var queue = "hello";
-    var msg = JSON.stringify(users[1]);
+    connection.createChannel(function(error1, channel) {
+        if (error1) {
+            throw error1;
+        }
+        var queue = 'user_queue';
 
-    channel.assertQueue(queue, {
-      durable: false,
+        channel.assertQueue(queue, {
+            durable: true
+        });
+        channel.prefetch(1);
+        console.log(' [x] Awaiting RPC requests');
+        channel.consume(queue, function reply(msg) {
+            var request = msg.content.toString();
+            var response;
+            console.log("request: ", request);
+            switch (request) {
+                case "allusers":
+                    response = users;
+                    break;
+
+                default:
+                    response = "Wrong request"
+                    break;
+            }
+
+            channel.sendToQueue(msg.properties.replyTo,
+                Buffer.from(JSON.stringify(response)), {
+                    correlationId: msg.properties.correlationId
+                });
+
+            channel.ack(msg);
+        });
     });
-
-    channel.sendToQueue(queue, Buffer.from(msg));
-    console.log(" [x] Sent %s", msg);
-  });
 });
