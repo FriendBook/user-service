@@ -87,7 +87,7 @@ app.delete("/usr/:id", (req, res) => {
 //get for friends
 app.get("/usr/frnd/:id", (req, res) => {
   if (!!users[req.params.id]) {
-    amqp.connect("amqp://localhost", function (error0, connection) {
+    amqp.connect("amqp://rabbitmq:5672", function (error0, connection) {
       if (error0) {
         throw error0;
       }
