@@ -26,12 +26,12 @@ let users = {
 };
 
 //Get all users
-app.get("/usr", (req, res) => {
+app.get("/api/usr", (req, res) => {
   res.status(200).send({ users });
 });
 
 //Get a user by id
-app.get("/usr/:id", (req, res) => {
+app.get("/api/usr/:id", (req, res) => {
   var user = users[req.params.id];
   if (!!user) {
     res.status(200).send(user);
@@ -42,7 +42,7 @@ app.get("/usr/:id", (req, res) => {
 });
 
 //Create a user
-app.post("/usr", (req, res) => {
+app.post("/api/usr", (req, res) => {
   if (!!req.body.name && !!req.body.bio) {
     var newUser = {
       name: req.body.name,
@@ -58,7 +58,7 @@ app.post("/usr", (req, res) => {
 });
 
 //Update user
-app.put("/usr/:id", (req, res) => {
+app.put("/api/usr/:id", (req, res) => {
   var id = req.params.id;
   if (!!users[id]) {
     users[id] = {
@@ -74,7 +74,7 @@ app.put("/usr/:id", (req, res) => {
 });
 
 //Delete user
-app.delete("/usr/:id", (req, res) => {
+app.delete("/api/usr/:id", (req, res) => {
   if (!!users[req.params.id]) {
     delete users[req.params.id];
     res.status(200).send(users);
@@ -85,7 +85,7 @@ app.delete("/usr/:id", (req, res) => {
 });
 
 //get for friends
-app.get("/usr/frnd/:id", (req, res) => {
+app.get("/api/usr/frnd/:id", (req, res) => {
   if (!!users[req.params.id]) {
     amqp.connect("amqp://rabbitmq:5672", function (error0, connection) {
       if (error0) {
