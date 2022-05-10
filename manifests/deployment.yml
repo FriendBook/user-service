@@ -1,19 +1,19 @@
 apiVersion : apps/v1
 kind: Deployment
 metadata:
-  name: "friendbook-1bb5"
+  name: user-depl
 spec:
-  replicas: 2
+  replicas: 1
   selector:
     matchLabels:
-      app: "friendbook-1bb5"
+      app: user
   template:
     metadata:
       labels:
-        app: "friendbook-1bb5"
+        app: user
     spec:
       containers:
-        - name: "friendbook-1bb5"
+        - name: user
           image: "friendbook.azurecr.io/friendbook"
           ports:
           - containerPort: 4000
