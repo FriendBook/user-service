@@ -26,7 +26,7 @@ let users = {
 };
 
 //Get all users
-app.get("/api/usr", (req, res) => {
+app.get("/api/usr", (_req, res) => {
   res.status(200).send({ users });
 });
 
@@ -35,9 +35,8 @@ app.get("/api/usr/:id", (req, res) => {
   var user = users[req.params.id];
   if (!!user) {
     res.status(200).send(user);
-    return;
   } else {
-    throw "User by id " + req.params.id + " does not exist.";
+    throw new Error("User by id " + req.params.id + " does not exist.");
   }
 });
 
@@ -49,11 +48,10 @@ app.post("/api/usr", (req, res) => {
       bio: req.body.bio,
     };
     users[Object.keys(users).length + 1] = newUser;
-    res.status(200).send(users);
+    res.status(200);
     return;
   } else {
     throw "User could not be created, missing field.";
-    return;
   }
 });
 
@@ -65,11 +63,10 @@ app.put("/api/usr/:id", (req, res) => {
       name: req.body.name,
       bio: req.body.bio,
     };
-    res.status(200).send(users);
+    res.status(200);
     return;
   } else {
-    throw "User by id " + id + " does not exist.";
-    return;
+    throw new Error("User by id " + id + " does not exist.");
   }
 });
 
@@ -77,15 +74,15 @@ app.put("/api/usr/:id", (req, res) => {
 app.delete("/api/usr/:id", (req, res) => {
   if (!!users[req.params.id]) {
     delete users[req.params.id];
-    res.status(200).send(users);
+    res.status(200);
     return;
   } else {
-    throw "User by id " + id + " does not exist.";
+    throw new Error("User by id " + id + " does not exist.");
   }
 });
 
 //get for friends
-app.get("/api/usr/frnd/:id", (req, res) => {
+app.get("/api/usr/frnd/:id", (req, _res) => {
   if (!!users[req.params.id]) {
     amqp.connect("amqp://rabbitmq:5672", function (error0, connection) {
       if (error0) {
