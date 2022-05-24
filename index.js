@@ -48,7 +48,7 @@ app.post("/api/usr", (req, res) => {
       bio: req.body.bio,
     };
     users[Object.keys(users).length + 1] = newUser;
-    res.status(200);
+    res.status(200).send();
   } else {
     throw new Error("User could not be created, missing field.");
   }
@@ -62,7 +62,7 @@ app.put("/api/usr/:id", (req, res) => {
       name: req.body.name,
       bio: req.body.bio,
     };
-    res.status(200);
+    res.status(200).send();
   } else {
     throw new Error("User by id " + id + " does not exist.");
   }
@@ -72,7 +72,7 @@ app.put("/api/usr/:id", (req, res) => {
 app.delete("/api/usr/:id", (req, res) => {
   if (!!users[req.params.id]) {
     delete users[req.params.id];
-    res.status(200);
+    res.status(200).send();
   } else {
     throw new Error("User by id " + id + " does not exist.");
   }
