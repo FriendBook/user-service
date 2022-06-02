@@ -4,102 +4,136 @@ const PORT = 4000;
 const cors = require("cors");
 var amqp = require("amqplib/callback_api");
 
+const mysql = require("mysql");
+const connection = mysql.createConnection({
+  host: "localhost",
+  user: "dbuser",
+  password: "s3kreee7",
+  database: "friendbook-users",
+});
+
 app.use(express.json());
 app.use(cors());
 
+connection.connect();
 app.listen(PORT, () => console.log("Listening on " + PORT));
 
-//Fake Database
-let users = {
-  1: {
-    name: "John Doe",
-    bio: "Live in NL and love frikandel",
-  },
-  2: {
-    name: "Jane Doe",
-    bio: "Looking for John Doe",
-  },
-  3: {
-    name: "Draco Malfoy",
-    bio: "Im blonde",
-  },
-};
+var mqChannel;
+
+amqp.connect("amqp://rabbitmq:5672", function (error0, conn) {
+  if (error0) {
+    throw error0;
+  }
+  conn.createChannel(function (error1, channel) {
+    if (error1) {
+      throw error1;
+    }
+
+    if (err) throw err;
+
+    channel.assertQueue("actions", {
+      durable: false,
+    });
+
+    mqChannel = channel;
+  });
+});
 
 //Get all users
 app.get("/api/usr", (_req, res) => {
-  res.status(200).send({ users });
+  connection.query("SELECT * FROM users", (err, rows, fields) => {
+    if (err) throw err;
+
+    res.status(200).send({ rows });
+  });
 });
 
 //Get a user by id
 app.get("/api/usr/:id", (req, res) => {
-  var user = users[req.params.id];
-  if (!!user) {
-    res.status(200).send(user);
-  } else {
-    throw new Error("User by id " + req.params.id + " does not exist.");
-  }
+  connection.query(
+    `SELECT * FROM users WHERE id='${req.params.id}'`,
+    (err, row, fields) => {
+      if (err) throw err;
+
+      res.status(200).send({ row });
+    }
+  );
+
+  // var user = users[req.params.id];
+  // if (!!user) {
+  //   res.status(200).send(user);
+  // } else {
+  //   throw new Error("User by id " + req.params.id + " does not exist.");
+  // }
 });
 
 //Create a user
 app.post("/api/usr", (req, res) => {
-  if (!!req.body.name && !!req.body.bio) {
-    var newUser = {
-      name: req.body.name,
-      bio: req.body.bio,
-    };
-    users[Object.keys(users).length + 1] = newUser;
-    res.status(200).send();
-  } else {
-    throw new Error("User could not be created, missing field.");
-  }
+  var msg = {
+    type: "create",
+    id: req.body.id,
+    name: req.body.name,
+  };
+  mqChannel.sendToQueue("actions", Buffer.from(msg));
+  connection.query(
+    `INSERT INTO users (id, name, bio, birthdate) VALUES ('${req.body.id}', '${req.body.name}', '${req.body.bio}', '${req.body.birthdate}')`,
+    (err, row, fields) => {
+      if (err) throw err;
+
+      res.status(200).send();
+    }
+  );
 });
 
 //Update user
 app.put("/api/usr/:id", (req, res) => {
-  var id = req.params.id;
-  if (!!users[id]) {
-    users[id] = {
-      name: req.body.name,
-      bio: req.body.bio,
-    };
-    res.status(200).send();
-  } else {
-    throw new Error("User by id " + id + " does not exist.");
-  }
+  var msg = {
+    type: "update",
+    id: req.body.id,
+    name: req.body.name,
+  };
+  mqChannel.sendToQueue("actions", Buffer.from(msg));
+  connection.query(
+    `UPDATE users SET name='${req.body.name}', bio='${req.body.bio}', birthdate='${req.body.birthdate}' WHERE id='${req.params.id}'`,
+    (err, result) => {
+      if (err) throw err;
+
+      res.status(200).send();
+    }
+  );
 });
 
 //Delete user
 app.delete("/api/usr/:id", (req, res) => {
-  if (!!users[req.params.id]) {
-    delete users[req.params.id];
-    res.status(200).send();
-  } else {
-    throw new Error("User by id " + id + " does not exist.");
-  }
+  var msg = {
+    type: "delete",
+    id: req.body.id,
+  };
+  mqChannel.sendToQueue("actions", Buffer.from(msg));
+  connection.query(
+    `DELETE FROM users WHERE id='${req.params.id}'`,
+    (err, result) => {
+      if (err) throw err;
+
+      res.status(200).send();
+    }
+  );
 });
 
-//get for friends
-app.get("/api/usr/frnd/:id", (req, _res) => {
-  if (!!users[req.params.id]) {
-    amqp.connect("amqp://rabbitmq:5672", function (error0, connection) {
-      if (error0) {
-        throw error0;
-      }
-      connection.createChannel(function (error1, channel) {
-        if (error1) {
-          throw error1;
-        }
+// //get for friends
+// app.get("/api/usr/frnd", (req, _res) => {
+//   var ids = req.body;
+//   var friends = [];
 
-        var queue = "users";
-        var msg = JSON.stringify(users);
-
-        channel.assertQueue(queue, {
-          durable: false,
-        });
-        channel.sendToQueue(queue, Buffer.from(msg));
-
-        console.log(" [x] Sent %s", msg);
-      });
-    });
-  }
-});
+//   for (var i = 0; i < ids.length; i++) {
+//     connection.query(
+//       `SELECT * FROM users WHERE id='${ids[i]}'`,
+//       (err, rows, fields) => {
+//         friends.push(rows.name);
+//       }
+//     ); //to be fixed
+//   }
+//   connection.query("SELECT * FROM users", (err, rows, fields) => {
+//     x;
+//   });
+// });
