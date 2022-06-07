@@ -2,8 +2,8 @@ const express = require("express");
 const app = express();
 const PORT = 4000;
 const cors = require("cors");
-var amqp = require("amqplib/callback_api");
-var jwt = require("jsonwebtoken");
+const amqp = require("amqplib/callback_api");
+const jwt = require("jsonwebtoken");
 
 const mysql = require("mysql");
 const connection = mysql.createConnection({
@@ -25,8 +25,9 @@ let secret = [
   "-----END PUBLIC KEY-----",
 ].join("\n");
 
-var mqChannel;
+let mqChannel;
 
+//amqp://rabbitmq:5672
 amqp.connect("amqp://rabbitmq:5672", function (error0, conn) {
   if (error0) {
     throw error0;
@@ -50,7 +51,7 @@ amqp.connect("amqp://rabbitmq:5672", function (error0, conn) {
 
 //Get all users
 app.get("/api/usr", (_req, res) => {
-  connection.query("SELECT * FROM users", (err, rows, fields) => {
+  connection.query("SELECT * FROM users", (err, rows, _fields) => {
     if (err) throw err;
 
     res.status(200).send({ rows });
@@ -69,11 +70,11 @@ app.get("/api/usr/self/:id", (req, res) => {
       }
       connection.query(
         `SELECT * FROM users WHERE id='${decoded.sub}'`,
-        (err, row, fields) => {
-          if (err) throw err;
+        (err2, row, _fields) => {
+          if (err2) throw err2;
           
           if (row.length == 0) {
-            var msg = {
+            const msg = {
               type: "create",
               id: decoded.sub,
               name: decoded.preferred_username,
@@ -85,8 +86,8 @@ app.get("/api/usr/self/:id", (req, res) => {
               `INSERT INTO users (id, name, bio, birthdate) VALUES ('${
                 decoded.sub
               }', '${decoded.preferred_username}', ${null}, ${null})`,
-              (err, _row, _fields) => {
-                if (err) throw err;
+              (err3, _row, _fields) => {
+                if (err3) throw err3;
 
                 res.status(200).send(true);
               }
@@ -103,7 +104,7 @@ app.get("/api/usr/self/:id", (req, res) => {
 //Get a user by id
 app.get("/api/usr/:id", (req, res) => {
   connection.query(
-    `SELECT * FROM users WHERE id='${req.params.id}'`,
+    `SELECT * FROM users WHERE id='${req.params.id.toString()}'`,
     (err, row, _fields) => {
       if (err) throw err;
 
@@ -122,7 +123,7 @@ app.post("/api/usr", (req, res) => {
   mqChannel.sendToQueue("posts", Buffer.from(JSON.stringify(msg)));
   mqChannel.sendToQueue("friends", Buffer.from(JSON.stringify(msg)));
   connection.query(
-    `INSERT INTO users (id, name, bio, birthdate) VALUES ('${req.body.id}', '${req.body.name}', ${null}, ${null})`,
+    `INSERT INTO users (id, name, bio, birthdate) VALUES ('${req.body.id.toString()}', '${req.body.name.toString()}', ${null}, ${null})`,
     (err, _row, _fields) => {
       if (err) throw err;
 
@@ -133,7 +134,7 @@ app.post("/api/usr", (req, res) => {
 
 //Update user
 app.put("/api/usr/:id", (req, res) => {
-  var msg = {
+  const msg = {
     type: "update",
     id: req.params.id,
     name: req.body.name,
@@ -141,7 +142,7 @@ app.put("/api/usr/:id", (req, res) => {
   mqChannel.sendToQueue("posts", Buffer.from(JSON.stringify(msg)));
   mqChannel.sendToQueue("friends", Buffer.from(JSON.stringify(msg)));
   connection.query(
-    `UPDATE users SET name='${req.body.name}', bio='${req.body.bio}', birthdate='${req.body.birthdate}' WHERE id='${req.params.id}'`,
+    `UPDATE users SET name='${req.body.name.toString()}', bio='${req.body.bio.toString()}', birthdate='${req.body.birthdate.toString()}' WHERE id='${req.params.id.toString()}'`,
     (err, _result) => {
       if (err) throw err;
 
@@ -152,14 +153,14 @@ app.put("/api/usr/:id", (req, res) => {
 
 //Delete user
 app.delete("/api/usr/:id", (req, res) => {
-  var msg = {
+  const msg = {
     type: "delete",
     id: req.params.id,
   };
   mqChannel.sendToQueue("posts", Buffer.from(JSON.stringify(msg)));
   mqChannel.sendToQueue("friends", Buffer.from(JSON.stringify(msg)));
   connection.query(
-    `DELETE FROM users WHERE id='${req.params.id}'`,
+    `DELETE FROM users WHERE id='${req.params.id.toString()}'`,
     (err, _result) => {
       if (err) throw err;
 
