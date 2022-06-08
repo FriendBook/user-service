@@ -1,6 +1,4 @@
 const express = require("express");
-const session = require("express-session");
-const Keycloak = require("keycloak-connect");
 const app = express();
 const PORT = 4000;
 const cors = require("cors");
@@ -15,21 +13,8 @@ const connection = mysql.createConnection({
   database: "friendbook-users",
 });
 
-const kcConfig = {
-  clientId: "react-auth",
-  bearerOnly: true,
-  serverUrl: "http://localhost:8080/auth/",
-  realm: "Friendbook",
-  realmPublicKey:
-    "MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEAi60VZKmGbOEmHJgV2nTylCNjzyLa1DRKDChAoPgWGbURzer1Ba8mivPOlxP2+wr+w/cNcagz4n+N3+03kMa7XEPhzh5C6rMQh38Dw9S43QRF3hbv88sqaweG0KvD5NOrlYLJmJ6RGb2fH6dC0IQ4JkBhtQ6Wa3kt0Omum8f7aLR5BmmEkK77/ebFtoUNPVASP9Y8LR0fO8TjcZwf6OGShI6BOYAtHdErg6lPPIzR2EYg0JR8wCT96zQv0DV9OCyaDqRXaEb2G8fatNxGOWNBG7xTxUgidNxM/BAD22DqTYXm56JF4DchSPU63Mqd3z7wsUG9KjfQSEVgPbsGhEU4cQIDAQAB",
-};
-
-const memoryStore = new session.MemoryStore();
-const keycloak = new Keycloak({ store: memoryStore }, kcConfig);
-
 app.use(express.json());
 app.use(cors());
-// app.use(keycloak.middleware());
 
 connection.connect();
 app.listen(PORT, () => console.log("Listening on " + PORT));
@@ -155,25 +140,35 @@ app.get("/api/usr/:id", (req, res) => {
 
 //Create a user
 app.post("/api/usr", (req, res) => {
-  var msg = {
-    type: "create",
-    id: req.body.id,
-    name: req.body.name,
-  };
-  mqChannel.sendToQueue("posts", Buffer.from(JSON.stringify(msg)));
-  mqChannel.sendToQueue("friends", Buffer.from(JSON.stringify(msg)));
-  connection.query(
-    `INSERT INTO users (id, name, bio, birthdate) VALUES ('${req.body.id.toString()}', '${req.body.name.toString()}', ${null}, ${null})`,
-    (err, _row, _fields) => {
-      if (err) throw err;
+  jwt.verify(
+    req.headers.authorization.replace("Bearer ", ""),
+    secret,
+    { algorithms: ["RS256"] },
+    function (err) {
+      if (err) {
+        throw err;
+      }
+      var msg = {
+        type: "create",
+        id: req.body.id,
+        name: req.body.name,
+      };
+      mqChannel.sendToQueue("posts", Buffer.from(JSON.stringify(msg)));
+      mqChannel.sendToQueue("friends", Buffer.from(JSON.stringify(msg)));
+      connection.query(
+        `INSERT INTO users (id, name, bio, birthdate) VALUES ('${req.body.id.toString()}', '${req.body.name.toString()}', ${null}, ${null})`,
+        (err, _row, _fields) => {
+          if (err) throw err;
 
-      res.status(200).send();
+          res.status(200).send();
+        }
+      );
     }
   );
 });
 
 //Update user
-app.put("/api/usr/:id", keycloak.protect(), (req, res) => {
+app.put("/api/usr/:id", (req, res) => {
   const msg = {
     type: "update",
     id: req.params.id,
@@ -182,7 +177,7 @@ app.put("/api/usr/:id", keycloak.protect(), (req, res) => {
   mqChannel.sendToQueue("posts", Buffer.from(JSON.stringify(msg)));
   mqChannel.sendToQueue("friends", Buffer.from(JSON.stringify(msg)));
   connection.query(
-    `UPDATE users SET name='${req.body.name.toString()}', bio='${req.body.bio.toString()}', birthdate='${bdate}' WHERE id='${req.params.id.toString()}'`,
+    `UPDATE users SET name='${req.body.name.toString()}', bio='${req.body.bio.toString()}', birthdate='${req.body.birthdate.toString()}' WHERE id='${req.params.id.toString()}'`,
     (err, _result) => {
       if (err) throw err;
 
@@ -192,19 +187,29 @@ app.put("/api/usr/:id", keycloak.protect(), (req, res) => {
 });
 
 //Delete user
-app.delete("/api/usr/:id", keycloak.protect(), (req, res) => {
-  const msg = {
-    type: "delete",
-    id: req.params.id,
-  };
-  mqChannel.sendToQueue("posts", Buffer.from(JSON.stringify(msg)));
-  mqChannel.sendToQueue("friends", Buffer.from(JSON.stringify(msg)));
-  connection.query(
-    `DELETE FROM users WHERE id='${req.params.id.toString()}'`,
-    (err, _result) => {
-      if (err) throw err;
+app.delete("/api/usr/:id", (req, res) => {
+  jwt.verify(
+    req.headers.authorization.replace("Bearer ", ""),
+    secret,
+    { algorithms: ["RS256"] },
+    function (err) {
+      if (err) {
+        throw err;
+      }
+      const msg = {
+        type: "delete",
+        id: req.params.id,
+      };
+      mqChannel.sendToQueue("posts", Buffer.from(JSON.stringify(msg)));
+      mqChannel.sendToQueue("friends", Buffer.from(JSON.stringify(msg)));
+      connection.query(
+        `DELETE FROM users WHERE id='${req.params.id.toString()}'`,
+        (err, _result) => {
+          if (err) throw err;
 
-      res.status(200).send();
+          res.status(200).send();
+        }
+      );
     }
   );
 });
